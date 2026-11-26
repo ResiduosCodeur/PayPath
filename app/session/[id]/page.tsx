@@ -1,4 +1,5 @@
 "use client";
+import { REVIEW_THRESHOLD } from "@/lib/requirement-review";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Tag from "@/components/Tag";
@@ -76,9 +77,9 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       <div className="flex items-center justify-between">
         <Tag>Results</Tag>
         <div className="flex gap-3">
-          <Link href="/" className="border border-border hover:border-accent transition-colors text-base px-5 py-2.5 rounded-[8px]">
+          <a href="/" className="border border-border hover:border-accent transition-colors text-base px-5 py-2.5 rounded-[8px]">
             Dashboard
-          </Link>
+          </a>
           <Link href="/scenario" className="bg-accent hover:bg-accent-dark transition-colors text-bg font-medium text-base px-5 py-2.5 rounded-[8px]">
             New analysis
           </Link>
@@ -90,18 +91,18 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         <p className="text-base leading-relaxed whitespace-pre-wrap max-w-[70ch]">{session.scenario}</p>
       </div>
 
-      <div className="bg-panel border border-border rounded-[10px] p-7 overflow-x-auto">
-        <div className="flex items-center justify-between mb-1">
+      <div className="w-full lg:w-[min(76rem,calc(100vw_-_4rem))] self-center bg-panel border border-border rounded-[10px] p-4 sm:p-7 overflow-x-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h3 className="font-display font-bold text-lg">
             Requirements <span className="text-muted font-sans font-normal text-base">({requirements.length})</span>
           </h3>
           {reviewCount > 0 && (
-            <span className="text-sm text-warn border border-warn/40 bg-warn/10 px-2.5 py-1 rounded-[5px]">
+            <span className="whitespace-nowrap text-sm text-warn border border-warn/40 bg-warn/10 px-2.5 py-1 rounded-[5px]">
               {reviewCount} flagged for human review
             </span>
           )}
         </div>
-        <p className="text-sm text-muted mb-4">Low-confidence extractions (below 60%) are automatically flagged rather than presented as certain.</p>
+        <p className="text-sm text-muted mb-4">Requirements with confidence below {REVIEW_THRESHOLD}% are flagged for human review.</p>
         <table className="w-full text-base">
           <thead>
             <tr className="text-sm text-muted">
@@ -113,13 +114,13 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               <th className="text-left border-b border-border py-3 pr-4 font-normal">Confidence</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&_span]:inline-block [&_span]:whitespace-nowrap">
             {requirements.map((r) => (
               <tr key={r.id} className={r.needsReview ? "bg-warn/5" : ""}>
                 <td className="border-b border-border py-4 pr-4">
                   <span className={`text-sm font-mono border px-2.5 py-1 rounded-[5px] ${idClasses(r.id)}`}>{r.id}</span>
                 </td>
-                <td className="border-b border-border py-4 pr-4">
+                <td className="min-w-[12rem] [overflow-wrap:anywhere] border-b border-border py-4 pr-4">
                   {r.statement}
                   {r.needsReview && <span className="ml-2 text-sm text-warn">⚠ review</span>}
                 </td>
@@ -150,10 +151,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                 <div key={i} className={i === 0 ? "rounded-[8px] p-5 bg-accent/10 border border-accent" : "rounded-[8px] p-5 border border-border"}>
                   <div className="flex items-baseline justify-between mb-2">
                     <strong className={`text-lg ${i === 0 ? "text-accent" : ""}`}>{o.model}</strong>
-                    <span className="text-sm text-muted">{o.confidence}%</span>
-                  </div>
-                  <div className="h-1.5 bg-panel2 rounded-full overflow-hidden mb-3">
-                    <div className={i === 0 ? "h-full bg-accent" : "h-full bg-muted/50"} style={{ width: `${o.confidence}%` }} />
+                    <span className="text-sm text-muted">{i === 0 ? "First choice" : `Alternative ${i}`}</span>
                   </div>
                   <p className="text-sm text-muted">{o.reason}</p>
                 </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractRequirements, recommendSdlc } from "@/lib/anthropic";
+import { extractRequirements, recommendSdlc } from "@/lib/server";
 import { synthesizeScenarioFromDocument } from "@/lib/vectorstore";
 import db from "@/lib/db";
 import { randomUUID } from "crypto";
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { requirements, evidenceUsed: reqEvidence } = await extractRequirements(scenario);
-    const { sdlc, evidenceUsed: sdlcEvidence } = await recommendSdlc(requirements);
+    const { sdlc, evidenceUsed: sdlcEvidence } = await recommendSdlc(requirements, scenario);
 
     const id = randomUUID();
     db.prepare(

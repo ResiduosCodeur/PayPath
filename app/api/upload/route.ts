@@ -2,18 +2,23 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { storeDocument } from "@/lib/vectorstore";
+import mammoth from "mammoth";
+import { PDFParse } from "pdf-parse";
 
 async function extractText(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const name = file.name.toLowerCase();
 
   if (name.endsWith(".pdf")) {
-    const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(buffer);
-    return data.text;
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const { text } = await parser.getText();
+      return text;
+    } finally {
+      await parser.destroy();
+    }
   }
   if (name.endsWith(".docx")) {
-    const mammoth = (await import("mammoth")).default;
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   }

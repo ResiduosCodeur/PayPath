@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { SessionRow } from "@/lib/db";
+import { withReviewFlag } from "@/lib/requirement-review";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const row = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(params.id) as SessionRow | undefined;
@@ -9,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     title: row.title,
     createdAt: row.created_at,
     scenario: row.scenario,
-    requirements: JSON.parse(row.requirements),
+    requirements: JSON.parse(row.requirements).map(withReviewFlag),
     sdlc: JSON.parse(row.sdlc),
     reqEvidence: JSON.parse(row.req_evidence || "[]"),
     sdlcEvidence: JSON.parse(row.sdlc_evidence || "[]"),

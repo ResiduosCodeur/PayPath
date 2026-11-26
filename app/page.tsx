@@ -7,12 +7,18 @@ type SessionSummary = { id: string; title: string; created_at: number };
 
 export default function Home() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
+    fetch("/api/sessions", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load analyses");
+        const data = await response.json();
+        if (!Array.isArray(data)) throw new Error("Invalid analyses response");
+        return data;
+      })
       .then(setSessions)
-      .catch(() => setSessions([]));
+      .catch(() => setLoadFailed(true));
   }, []);
 
   return (
@@ -28,7 +34,8 @@ export default function Home() {
         </Link>
       </div>
 
-      {sessions === null && <p className="text-sm text-muted">Loading…</p>}
+      {loadFailed && <p role="alert" className="text-sm text-danger">Could not load your analyses.</p>}
+      {!loadFailed && sessions === null && <p className="text-sm text-muted">Loading…</p>}
       {sessions?.length === 0 && (
         <div className="border border-dashed border-border rounded-[8px] py-10 text-center">
           <p className="text-sm text-muted">Nothing here yet. Describe a scenario to get started.</p>

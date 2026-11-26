@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Requirements &amp; SDLC Agent
               </h1>
               <p className="text-muted text-sm mt-1">
-                Fine-tuned agents: extraction &rarr; SDLC recommendation
+                Extraction &rarr; SDLC recommendation
               </p>
             </div>
           </header>

@@ -41,9 +41,22 @@ export async function extractRequirements(scenario: string): Promise<ExtractionR
 }
 
 // ---------- AGENT 2: SDLC SELECTION (RAG-grounded) ----------
+function modelKey(name: string) {
+  return name.toLowerCase().trim().replace(/^sdlc[-_\s]+/, "").replace(/\s+model$/, "").replace(/[^a-z0-9]/g, "");
+}
+
 export async function recommendSdlc(requirements: any[], scenario: string): Promise<SdlcResult> {
   const evidenceDocs = KNOWLEDGE_BASE.filter((doc) => doc.category === "sdlc_rule");
   const models = evidenceDocs.map((doc) => doc.title);
+  const modelNames = new Map(models.map((name) => [modelKey(name), name]));
+  for (const [alias, name] of [
+    ["Agile/DevSecOps", "Agile"],
+    ["Prototyping", "Prototype"],
+    ["Rapid Application Development", "RAD"],
+    ["Rapid Application Development (RAD)", "RAD"],
+  ]) {
+    if (models.includes(name)) modelNames.set(modelKey(alias), name);
+  }
   let evidence = [
     "Compare every model below against the original scenario and extracted requirements. The order of the guidance has no significance.",
     "Weigh scope stability, speed of delivery, access to users, verification needs, and unresolved technical risks. A payment feature or a high-risk requirement alone does not establish a delivery approach.",
@@ -54,14 +67,23 @@ export async function recommendSdlc(requirements: any[], scenario: string): Prom
   ].join("\n");
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { sdlc } = await callAgent("/sdlc", { requirements, compliance: [], evidence });
+    const response = await callAgent("/sdlc", { requirements, compliance: [], evidence });
+    const sdlc = response.sdlc ?? response;
     const options = sdlc?.ranked_options;
-    if (Array.isArray(options) && options.length && options.every((option) => models.includes(option?.model)) &&
-        new Set(options.map((option) => option.model)).size === options.length) {
-      const ranked_options = options.map(({ model, reason }) => ({ model, reason }));
-      return { sdlc: { ...sdlc, ranked_options }, evidenceUsed: evidenceDocs };
+    if (Array.isArray(options)) {
+      const seen = new Set<string>();
+      const ranked_options = [];
+      for (const option of options) {
+        const model = typeof option?.model === "string" && modelNames.get(modelKey(option.model));
+        // The workflow belongs to the first choice. Retry if that choice is unknown.
+        if (!model && ranked_options.length === 0) break;
+        if (!model || seen.has(model)) continue;
+        seen.add(model);
+        ranked_options.push({ model, reason: option.reason });
+      }
+      if (ranked_options.length) return { sdlc: { ...sdlc, ranked_options }, evidenceUsed: evidenceDocs };
     }
-    evidence += "\nRegenerate the ranking and its workflow using only the listed model names.";
+    evidence += '\nReturn an sdlc object with ranked_options (an array of objects with model and reason) and recommended_workflow. Use a listed model name for each option.';
   }
   throw new Error("The inference server did not return a ranking of supported SDLC models.");
 }
